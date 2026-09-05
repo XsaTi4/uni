@@ -1,0 +1,7 @@
+.DS_Store
+*.class
+*.o
+*.out
+/HighLow/src/main
+/HighLow/src/java/b1
+/HighLow/src/java/b2
