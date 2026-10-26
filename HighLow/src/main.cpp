@@ -5,19 +5,22 @@ using namespace std;
 
 bool option() {
     int Selection;
+    
     do {
         cout << "Main menu:\n" << "choose the option:\n\n" << "1 - Start the game" << "\n2 - exit the game" << "\n" << endl;
         cin >> Selection;
-        if (Selection == 1) {
+        switch(Selection){
+        case 1:
             return true;
-        }
-        else if (Selection == 2) {
-            cout << "Bye!" << endl;
+            break;  
+        case 2:
             return false;
-        }
-        else {
+            break;
+        default:
             cout << "Error: select option between 1 and 2!" << endl;
-        }
+            break;
+        
+    }
     } while (Selection != 1 && Selection != 2);
     return false;
 }
