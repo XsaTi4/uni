@@ -6,6 +6,7 @@
 
 
 using namespace std;
+const vector<string> vehTypes;
 
 struct Trip{
     int id;
@@ -18,13 +19,13 @@ struct Trip{
 
 struct Input{
     string command;
-    string param;
+    vector<string> params;
 };
 
 vector<Trip> input(string filename){
  ifstream db(filename);
     vector<Trip> trips;
-    
+
     string line;
 
     while(getline(db, line)){
@@ -61,12 +62,20 @@ vector<Trip> input(string filename){
 }
 
 
+void add(const Input& input){
+    ofstream db("db.csv", ios::app);
 
-//void add(vector<Trip>& trips, string input, Trip trip.id, Trip city, Trip date, Trip days, Trip price, Trip typeOfVeh){
-//    ofstream output(input, ios::app);
-//
-//    output << id << ";" << city << ";" << date << ";" << days << ";" << price << ";" << typeOfVeh;
-//}
+    int id = stoi(input.params[0]);
+    string city = input.params[1];
+    string date = input.params[2];
+    int days = stoi(input.params[3]);
+    double price = stod(input.params[4]);
+    string typeOfVeh = input.params[5];
+
+    db << id << ";" << city << ";" << date << ";" << days << ';' << price << ";" << typeOfVeh;
+
+}
+
 
 void printInfo(const vector<Trip>& trips){
     cout << string(60, '-') << '\n';
@@ -79,7 +88,7 @@ void printInfo(const vector<Trip>& trips){
          << setw(10) << "Price"
          << " Vehicle\n";
     cout << string(60, '-') << '\n';
-    
+
     for (const Trip& trip : trips) {
         cout << left
              << setw(4) << trip.id
@@ -99,8 +108,22 @@ Input parseInput(const string& line){
     stringstream ss(line);
     ss >> input.command;
 
-    input.param.erase(0, input.param.find_first_not_of(" \t"));
+    string param;
+    getline(ss, param);
+
+    param.erase(0, param.find_first_not_of(" \t"));
+
+    stringstream paramStream(param);
+    string value;
+    while (getline(paramStream, value, ';')) {
+        input.params.push_back(value);
+    }
+
+    if (!param.empty() && param.back() == ';'){
+        input.params.push_back("");
+    }
     return input;
+
 }
 
 void inputManager(const Input& input, const vector<Trip>& trips){
@@ -108,38 +131,44 @@ void inputManager(const Input& input, const vector<Trip>& trips){
         printInfo(trips);
     }
     else if (input.command == "add"){
-        cout << "add";
+        cout << "add" << '\n';
+        add(input);
+
     }
     else if (input.command == "find"){
-        cout << "find";
-
+        cout << "find" << '\n';
     }
-
     else if (input.command == "avg"){
-        cout << "avg";
+        cout << "avg" << '\n';
     }
     else if (input.command == "del"){
-        cout << "del";
+        cout << "del" << '\n';
     }
     else if (input.command == "edit"){
-        cout << "edit";
+        cout << "edit" << '\n';
     }
     else if (input.command == "sort"){
-        cout << "sort";
+        cout << "sort" << '\n';
     }
-
+    else if (input.command == "exit"){
+        exit(0);
+    }
     else{
-        cout << "wrong command!";
+        cout << "wrong command!" << '\n';
     }
 }
 int main(){
     const string InputSource = "db.csv";
     vector<Trip> trips = input(InputSource);
-    while(true){
-        string chose;
-        cin >> chose;
-        Input input = parseInput(chose);
+    string line;
+    while (true){
+        vector<Trip> trips = input(InputSource);
+        getline(cin,line);
+        Input input = parseInput(line);
         inputManager(input, trips);
+
+
+
     }
     return 0;
 }
