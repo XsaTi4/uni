@@ -3,10 +3,9 @@
 #include <sstream>
 #include <vector>
 #include <iomanip>
-#include <filesystem>
+#include <algorithm>
 
 using namespace std;
-const vector<string> vehTypes;
 
 struct Trip
 {
@@ -24,10 +23,16 @@ struct Input
     vector<string> params;
 };
 
-vector<Trip> input(string filename)
+vector<Trip> input(const string &filename)
 {
     ifstream db(filename);
     vector<Trip> trips;
+
+    if (!db.is_open())
+    {
+        cerr << "cannot open file" << '\n';
+        return trips;
+    }
 
     string line;
 
@@ -64,56 +69,31 @@ vector<Trip> input(string filename)
         trips.push_back(trip);
     }
 
-    db.close();
     return trips;
 }
 
-void appendTrip(const Trip& trip){
-    const string filename = "db.csv";
-
-    bool needNewLine = false;
-
-    if (filesystem::exists(filename) && filesystem::file_size(filename) > 0){
-        ifstream check(filename, ios::binary);
-
-        check.seekg(-1, ios::end);
-        char lastChar;
-        check.get(lastChar);
-        needNewLine = (lastChar != '\n');
-
-    }
-
-    ofstream db(filename, ios::app);
-
-    if (!db.is_open()){
-        cerr << "cannot open file" << endl;
-        return;
-    }
-
-    if(needNewLine){
-        db << '\n';
-    }
-
-    db << trip.id << ";"
-       << trip.city << ";"
-       << trip.date << ";"
-       << trip.days << ";"
-       << fixed << setprecision(2) << trip.price << ";"
-       << trip.typeOfVeh << '\n';
-}
-
-void add(const Input &input)
+bool saveTrips(const string &filename, const vector<Trip> &trips)
 {
-    ofstream db("db.csv", ios::app);
+    // Файл полностью перезаписывается актуальными данными из памяти.
+    ofstream db(filename);
 
-    int id = stoi(input.params[0]);
-    string city = input.params[1];
-    string date = input.params[2];
-    int days = stoi(input.params[3]);
-    double price = stod(input.params[4]);
-    string typeOfVeh = input.params[5];
+    if (!db.is_open())
+    {
+        cerr << "cannot open file" << '\n';
+        return false;
+    }
 
-    db << id << ";" << city << ";" << date << ";" << days << ';' << fixed << setprecision(2)<< price << ";" << typeOfVeh;
+    for (const Trip &trip : trips)
+    {
+        db << trip.id << ';'
+           << trip.city << ';'
+           << trip.date << ';'
+           << trip.days << ';'
+           << fixed << setprecision(2) << trip.price << ';'
+           << trip.typeOfVeh << '\n';
+    }
+
+    return true;
 }
 
 void printInfo(const vector<Trip> &trips)
@@ -144,6 +124,119 @@ void printInfo(const vector<Trip> &trips)
     cout << string(60, '-') << '\n';
 }
 
+vector<Trip> findTrips(const vector<Trip> &trips, double maxPrice)
+{
+    vector<Trip> result;
+
+    for (const Trip &trip : trips)
+    {
+        if (trip.price <= maxPrice)
+        {
+            result.push_back(trip);
+        }
+    }
+
+    return result;
+}
+
+void printAverage(const vector<Trip> &trips)
+{
+    double total = 0.0;
+
+    for (const Trip &trip : trips)
+    {
+        total += trip.price;
+    }
+
+    // Защита от деления на ноль, если CSV пустой.
+    double average = trips.empty() ? 0.0 : total / trips.size();
+    cout << "average=" << fixed << setprecision(2) << average << '\n';
+}
+
+int dateKey(const string &date)
+{
+    // DD/MM/YYYY преобразуется в YYYYMMDD, который удобно сравнивать.
+    return stoi(date.substr(6, 4)) * 10000
+         + stoi(date.substr(3, 2)) * 100
+         + stoi(date.substr(0, 2));
+}
+
+void sortTrips(vector<Trip> &trips)
+{
+    sort(trips.begin(), trips.end(), [](const Trip &left, const Trip &right)
+    {
+        return dateKey(left.date) < dateKey(right.date);
+    });
+}
+
+bool deleteTrip(vector<Trip> &trips, int id)
+{
+    auto tripToDelete = find_if(trips.begin(), trips.end(), [id](const Trip &trip)
+    {
+        return trip.id == id;
+    });
+
+    if (tripToDelete == trips.end())
+    {
+        return false;
+    }
+
+    trips.erase(tripToDelete);
+    return true;
+}
+
+void addTrip(vector<Trip> &trips, const Input &input)
+{
+    // Валидацию параметров добавим отдельно; сейчас считаем ввод корректным.
+    Trip trip{
+        stoi(input.params[0]),
+        input.params[1],
+        input.params[2],
+        stoi(input.params[3]),
+        stod(input.params[4]),
+        input.params[5]
+    };
+
+    trips.push_back(trip);
+}
+
+bool editTrip(vector<Trip> &trips, const Input &input)
+{
+    int id = stoi(input.params[0]);
+    auto tripToEdit = find_if(trips.begin(), trips.end(), [id](const Trip &trip)
+    {
+        return trip.id == id;
+    });
+
+    if (tripToEdit == trips.end())
+    {
+        return false;
+    }
+
+    if (!input.params[1].empty())
+    {
+        tripToEdit->city = input.params[1];
+    }
+    if (!input.params[2].empty())
+    {
+        tripToEdit->date = input.params[2];
+    }
+    if (!input.params[3].empty())
+    {
+        tripToEdit->days = stoi(input.params[3]);
+    }
+    if (!input.params[4].empty())
+    {
+        tripToEdit->price = stod(input.params[4]);
+    }
+    if (!input.params[5].empty())
+    {
+        tripToEdit->typeOfVeh = input.params[5];
+    }
+
+    return true;
+}
+
 Input parseInput(const string &line)
 {
     Input input;
@@ -169,60 +262,103 @@ Input parseInput(const string &line)
     return input;
 }
 
-void inputManager(const Input &input, const vector<Trip> &trips, Trip& trip)
+bool inputManager(
+    const Input &input,
+    vector<Trip> &trips,
+    const string &filename)
 {
-    if (input.command == "print" || input.command == "Print" || input.command == "PRINT")
+    if (input.command == "print")
     {
         printInfo(trips);
     }
-    else if (input.command == "add")
-    {
-        cout << "add" << '\n';
-        add(input);
-        appendTrip(trip);
-    }
     else if (input.command == "find")
     {
-        cout << "find" << '\n';
+        double maxPrice = stod(input.params[0]);
+        printInfo(findTrips(trips, maxPrice));
     }
     else if (input.command == "avg")
     {
-        cout << "avg" << '\n';
-    }
-    else if (input.command == "del")
-    {
-        cout << "del" << '\n';
-    }
-    else if (input.command == "edit")
-    {
-        cout << "edit" << '\n';
+        printAverage(trips);
     }
     else if (input.command == "sort")
     {
-        cout << "sort" << '\n';
+        sortTrips(trips);
+
+        if (saveTrips(filename, trips))
+        {
+            cout << "sorted" << '\n';
+        }
+    }
+    else if (input.command == "del")
+    {
+        int id = stoi(input.params[0]);
+
+        if (deleteTrip(trips, id))
+        {
+            if (saveTrips(filename, trips))
+            {
+                cout << "deleted" << '\n';
+            }
+        }
+        else
+        {
+            cout << "wrong id" << '\n';
+        }
+    }
+    else if (input.command == "add")
+    {
+        addTrip(trips, input);
+
+        if (saveTrips(filename, trips))
+        {
+            cout << "added" << '\n';
+        }
+    }
+    else if (input.command == "edit")
+    {
+        if (editTrip(trips, input))
+        {
+            if (saveTrips(filename, trips))
+            {
+                cout << "changed" << '\n';
+            }
+        }
+        else
+        {
+            cout << "wrong id" << '\n';
+        }
     }
     else if (input.command == "exit")
     {
-        exit(0);
+        // Дополнительное сохранение гарантирует актуальность CSV при выходе.
+        saveTrips(filename, trips);
+        return false;
     }
     else
     {
-        cout << "wrong command!" << '\n';
+        cout << "wrong command" << '\n';
     }
+
+    return true;
 }
+
 int main()
 {
-    Trip trip;
-    const string InputSource = "db.csv";
-    vector<Trip> trips = input(InputSource);
+    const string inputSource = "db.csv";
+
+    // База читается один раз; все команды работают с одним объектом trips.
+    vector<Trip> trips = input(inputSource);
 
     string line;
-    while (true)
+    while (getline(cin, line))
     {
-        vector<Trip> trips = input(InputSource);
-        getline(cin, line);
-        Input input = parseInput(line);
-        inputManager(input, trips, trip);
+        Input userInput = parseInput(line);
+
+        if (!inputManager(userInput, trips, inputSource))
+        {
+            break;
+        }
     }
+
     return 0;
 }

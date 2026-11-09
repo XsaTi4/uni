@@ -20,6 +20,7 @@ public class main{
             this.date = date;
             this.price = price;
             this.TypeOfVeh = TypeOfVeh;
+
         }
     }
     public static final String COMMA_DELIMITER = ";";
