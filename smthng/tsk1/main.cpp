@@ -7,7 +7,6 @@ using namespace std;
 
 struct Student {
     string name;
-    string surname;
     vector<int> grades;
 
 };
@@ -59,7 +58,7 @@ bool scholarship(const Student& student){
         if (grades == 7){
             sevens++;
         }
-        
+
     }
     return sevens <=2;
 }
@@ -126,9 +125,44 @@ int main(){
     while(getline(inputFile, line)){
         stringstream ss(line);
         Student student;
-        ss >> student.name >> " " >> student.surname;
+        string word;
 
-        
+        vector<string> names;
+
+        bool readingGrades = false;
+        bool valid = true;
+
+        while(ss >> word){
+
+            if (!readingGrades && !isNumber(word)){
+                names.push_back(word);
+            }
+            else{
+                readingGrades = true;
+
+                if(!isNumber(word)){
+                    valid = false;
+                    break;
+                }
+                student.grades.push_back(stoi(word));
+            }
+        }
+
+        if (!valid || names.size() < 2 || student.grades.empty()){
+            cout << "Invalid student:" << line << '\n';
+            continue;
+        }
+
+        for (const string& name : names){
+            if(!student.name.empty()){
+                student.name += " ";
+            }
+            student.name += name;
+        }
+
+        students.push_back(student);
+
+
     }
 
     inputFile.close();
@@ -139,9 +173,7 @@ int main(){
 
     for (const auto& student : students){
         if (scholarship(student)){
-            outputFile << " " << student.name << " " << student.surname << " ";
-            int sevens = countSevens(student);
-            outputFile << " " << sevens << endl;
+            outputFile << student.name << " " << countSevens(student) << '\n';
         }
     }
     outputFile.close();
