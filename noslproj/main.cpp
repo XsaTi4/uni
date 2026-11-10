@@ -74,7 +74,6 @@ vector<Trip> input(const string &filename)
 
 bool saveTrips(const string &filename, const vector<Trip> &trips)
 {
-    // Файл полностью перезаписывается актуальными данными из памяти.
     ofstream db(filename);
 
     if (!db.is_open())
@@ -148,14 +147,12 @@ void printAverage(const vector<Trip> &trips)
         total += trip.price;
     }
 
-    // Защита от деления на ноль, если CSV пустой.
     double average = trips.empty() ? 0.0 : total / trips.size();
     cout << "average=" << fixed << setprecision(2) << average << '\n';
 }
 
 int dateKey(const string &date)
 {
-    // DD/MM/YYYY преобразуется в YYYYMMDD, который удобно сравнивать.
     return stoi(date.substr(6, 4)) * 10000
          + stoi(date.substr(3, 2)) * 100
          + stoi(date.substr(0, 2));
@@ -187,7 +184,6 @@ bool deleteTrip(vector<Trip> &trips, int id)
 
 void addTrip(vector<Trip> &trips, const Input &input)
 {
-    // Валидацию параметров добавим отдельно; сейчас считаем ввод корректным.
     Trip trip{
         stoi(input.params[0]),
         input.params[1],
@@ -330,7 +326,6 @@ bool inputManager(
     }
     else if (input.command == "exit")
     {
-        // Дополнительное сохранение гарантирует актуальность CSV при выходе.
         saveTrips(filename, trips);
         return false;
     }
@@ -346,7 +341,6 @@ int main()
 {
     const string inputSource = "db.csv";
 
-    // База читается один раз; все команды работают с одним объектом trips.
     vector<Trip> trips = input(inputSource);
 
     string line;

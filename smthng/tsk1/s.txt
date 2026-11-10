@@ -1,0 +1,12 @@
+Ivan Ivanov 1
+Anna Petrova 0
+Petr Sidorov 2
+Elena Popova 0
+Dmitry Volkov 1
+Nikita Morozov 0
+Daria Fedorova 1
+Alina Mikhailova 0
+Roman Egorov 2
+Artem Zakharov 1
+Polina Vinogradova 0
+Yulia Antonova 1
